@@ -10,9 +10,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
+# along with this program.  If not, see <https://www.gnu.org/licenses />.
 # -*- coding: utf-8 -*-
 import sys
 import re
@@ -34,12 +32,10 @@ try:
     PYPINYIN_AVAILABLE = True
 except ImportError:
     PYPINYIN_AVAILABLE = False
-
 CJK_RE = re.compile(r'[\u4e00-\u9fff]')
 EN_WORD_RE = re.compile(r"^[A-Za-z][A-Za-z'\-]{0,39}$")
 # 中文句子结束标记，用于统计句子数量
 SENTENCE_END_RE = re.compile(r'[。！？]')
-
 POS_ABBR = {
     'noun': 'n.', 'verb': 'v.', 'adjective': 'adj.', 'adverb': 'adv.',
     'pronoun': 'pron.', 'preposition': 'prep.', 'conjunction': 'conj.',
@@ -47,16 +43,10 @@ POS_ABBR = {
     'article': 'art.', 'auxiliary verb': 'aux. v.', 'proper noun': 'n.',
     'abbreviation': 'abbr.',
 }
-
-
 def has_cjk(text):
     return bool(CJK_RE.search(text or ''))
-
-
 def _clean_def(s):
     return re.sub(r'\s+', ' ', s).strip() if s else ''
-
-
 def count_chinese_sentences(text: str) -> int:
     """统计中文句子数量，按。！？分割"""
     if not text:
@@ -64,8 +54,6 @@ def count_chinese_sentences(text: str) -> int:
     parts = SENTENCE_END_RE.split(text)
     valid = [p for p in parts if p.strip()]
     return len(valid)
-
-
 def get_pinyin(text):
     text = (text or '').strip()
     if not text or not PYPINYIN_AVAILABLE:
@@ -76,8 +64,6 @@ def get_pinyin(text):
     except Exception as e:
         print(f"pypinyin error: {e}")
         return ''
-
-
 def fetch_english_info(word):
     word = (word or '').strip().lower()
     if not word or not EN_WORD_RE.match(word):
@@ -111,8 +97,6 @@ def fetch_english_info(word):
     except Exception as e:
         print(f"fetch_english_info network error: {e}")
     return info if ok else None
-
-
 def format_english_note(info):
     if not info:
         return ''
@@ -136,8 +120,6 @@ def format_english_note(info):
             lines.append(f"{POS_ABBR.get(pos, pos)} {defs[0][:70]}")
             break
     return '\n'.join(lines)
-
-
 def build_note(text, skip_pinyin: bool = False):
     """
     :param text: 输入文本
@@ -155,13 +137,10 @@ def build_note(text, skip_pinyin: bool = False):
         info = fetch_english_info(text)
         return format_english_note(info)
     return ''
-
-
 def translate_text(text):
     word_count = len(text.split())
     first, second = ('mymemory', 'deepl') if word_count > 4 else ('deepl', 'mymemory')
     errors = []
-
     def try_deepl():
         api_key = os.environ.get('DEEPL_API_KEY')
         if not api_key:
@@ -178,7 +157,6 @@ def translate_text(text):
             t = result['translations'][0]
             return t['text'], t.get('detected_source_language', 'auto').lower(), target_lang.lower()
         raise RuntimeError("DeepL 返回无效结果")
-
     def try_mymemory():
         src, dest = ('zh-CN', 'en') if CJK_RE.search(text) else ('en', 'zh-CN')
         url = f"http://api.mymemory.translated.net/get?q={requests.utils.quote(text)}&langpair={src}|{dest}"
@@ -189,22 +167,17 @@ def translate_text(text):
             if translated:
                 return translated, src, dest
         raise RuntimeError("MyMemory 返回空结果或错误")
-
     for api in (first, second):
         try:
             return (try_deepl() if api == 'deepl' else try_mymemory()) + (api.capitalize(),)
         except Exception as e:
             errors.append(f"{api.capitalize()}: {e}")
     raise RuntimeError(f"所有翻译服务均不可用: {'; '.join(errors)}")
-
-
 class TranslateThread(QThread):
     finished = pyqtSignal(dict)
-
     def __init__(self, text):
         super().__init__()
         self.text = text
-
     def run(self):
         result = {'original': self.text, 'translated': '', 'error': '',
                   'api': '', 'translated_note': '', 'source_note': ''}
@@ -216,11 +189,9 @@ class TranslateThread(QThread):
             result['error'] = str(e)
             self.finished.emit(result)
             return
-
         # 判断原文句子数量 >=3，跳过原文拼音
         sentence_cnt = count_chinese_sentences(self.text)
         skip_src_pinyin = sentence_cnt >= 3
-
         # 分开捕获异常，防止一个注释失败导致另一个丢失
         try:
             result['source_note'] = build_note(self.text, skip_pinyin=skip_src_pinyin)
@@ -232,10 +203,7 @@ class TranslateThread(QThread):
         except Exception as e:
             print(f"translated note build err: {e}")
             result['translated_note'] = ''
-
         self.finished.emit(result)
-
-
 NOTE_STYLE = "QLabel { color: #3a3a3a; font-size: 11px; padding: 4px 8px; background-color: rgba(255, 255, 255, 0.55); border-radius: 8px; }"
 NOTE_STYLE_EMPTY = "QLabel { background-color: transparent; }"
 HELP_TEXT = """快捷键（标准模式）：
@@ -260,8 +228,6 @@ Esc       返回标准模式（不翻译）
 说明：
 · 英文框下方显示音标 / 词性(n. v.)
 · 中文框下方显示拼音（需安装 pypinyin；3句及以上长文不显示拼音）"""
-
-
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -351,7 +317,6 @@ class MainWindow(QWidget):
         self.help_text_edit = help_text_edit
         self.help_overlay.installEventFilter(self)
         self.hide()
-
     def _create_readonly_edit(self, placeholder, height):
         edit = QPlainTextEdit()
         edit.setReadOnly(True)
@@ -359,7 +324,6 @@ class MainWindow(QWidget):
         edit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         edit.setFixedHeight(height)
         return edit
-
     def _create_note_label(self):
         label = QLabel("")
         label.setFixedHeight(54)
@@ -368,7 +332,6 @@ class MainWindow(QWidget):
         label.setStyleSheet(NOTE_STYLE_EMPTY)
         label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         return label
-
     # ---------- 注释标签 ----------
     def _set_note(self, label, text):
         if text:
@@ -377,11 +340,9 @@ class MainWindow(QWidget):
         else:
             label.setText("")
             label.setStyleSheet(NOTE_STYLE_EMPTY)
-
     def _clear_notes(self):
         self._set_note(self.translated_note, "")
         self._set_note(self.source_note, "")
-
     # ---------- Win11 亚克力毛玻璃 ----------
     def apply_win11_acrylic(self):
         if self._acrylic_applied:
@@ -404,7 +365,6 @@ class MainWindow(QWidget):
             self._acrylic_applied = True
         except Exception:
             pass
-
     def showEvent(self, event):
         self.apply_win11_acrylic()
         pos = self.settings.value('window/pos')
@@ -416,23 +376,25 @@ class MainWindow(QWidget):
             else:
                 self.move(pos)
         super().showEvent(event)
-
     def hideEvent(self, event):
         self.settings.setValue('window/pos', self.pos())
         super().hideEvent(event)
-
     def closeEvent(self, event):
         self.hide()
         event.ignore()
-
     def force_activate(self):
-        """修复快捷键呼出焦点丢失，延时在Qt主线程执行激活"""
+        """修复快捷键呼出焦点丢失，方案A：Windows原生SetForegroundWindow + 加长延时"""
         self.show()
         self.raise_()
-        self.activateWindow()
-        self.setFocus()
-        QTimer.singleShot(30, lambda: self.activateWindow())
-
+        hwnd = int(self.winId())
+        try:
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+        def _post_activate():
+            self.activateWindow()
+            self.setFocus()
+        QTimer.singleShot(80, _post_activate)
     # ---------- 事件处理 ----------
     def keyPressEvent(self, event: QKeyEvent):
         if self.mode == 'standard':
@@ -443,7 +405,6 @@ class MainWindow(QWidget):
             self._handle_e_pending_key(event)
         else:
             super().keyPressEvent(event)
-
     def _handle_standard_key(self, event):
         key = event.key()
         if Qt.Key_1 <= key <= Qt.Key_9:
@@ -476,11 +437,9 @@ class MainWindow(QWidget):
                 self.mode = 'e-pending'
                 self.status_label.setText("e-等待")
                 self.e_timer.start(1000)
-
     def _handle_help_key(self, event):
         if event.key() == Qt.Key_Escape:
             self._close_help()
-
     def _handle_e_pending_key(self, event):
         self.e_timer.stop()
         ch = event.text().lower()
@@ -496,13 +455,11 @@ class MainWindow(QWidget):
             self.status_label.setText("标准")
             self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
             self.api_label.setText("")
-
     def _cancel_e_pending(self):
         self.mode = 'standard'
         self.status_label.setText("标准")
         self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
         self.api_label.setText("")
-
     def _enter_editing_mode(self, append=False, front=False):
         self.input_edit.setFocusPolicy(Qt.StrongFocus)
         self.input_edit.setFocus()
@@ -518,7 +475,6 @@ class MainWindow(QWidget):
         self.status_label.setText("输入中...")
         self.status_label.setStyleSheet("color: #E97451; font-weight: bold; font-size: 11px;")
         self.api_label.setText("")
-
     def _exit_editing_mode(self):
         self.input_edit.clearFocus()
         self.input_edit.setFocusPolicy(Qt.NoFocus)
@@ -526,7 +482,6 @@ class MainWindow(QWidget):
         self.status_label.setText("标准")
         self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
         self.setFocus()
-
     # ---------- 翻译 ----------
     def _perform_translation(self):
         text = self.input_edit.toPlainText().strip()
@@ -539,7 +494,6 @@ class MainWindow(QWidget):
         self.thread = TranslateThread(text)
         self.thread.finished.connect(self._on_translation_done)
         self.thread.start()
-
     def _on_translation_done(self, result):
         if result.get('error'):
             self.translated_edit.setPlainText(f"错误: {result['error']}")
@@ -562,7 +516,6 @@ class MainWindow(QWidget):
             else:
                 self.api_label.setText("")
         self._exit_editing_mode()
-
     # ---------- 复制 / 粘贴 ----------
     def _copy_translated_and_clear(self):
         QApplication.clipboard().setText(self.translated_edit.toPlainText())
@@ -574,35 +527,28 @@ class MainWindow(QWidget):
         self.api_label.setText("")
         self._clear_notes()
         self._show_temporary_status("已复制译文并清空", "#28a745")
-
     def _copy_translated(self):
         QApplication.clipboard().setText(self.translated_edit.toPlainText())
         self._show_temporary_status("已复制译文", "#28a745")
-
     def _paste_to_input(self):
         self.input_edit.setPlainText(QApplication.clipboard().text())
         self._show_temporary_status("已粘贴剪贴板到输入框", "#28a745")
-
     def _copy_input_to_clipboard(self):
         QApplication.clipboard().setText(self.input_edit.toPlainText())
         self._show_temporary_status("已复制待译文", "#28a745")
-
     def _translate_again(self):
         text = self.translated_edit.toPlainText()
         if text:
             self.input_edit.setPlainText(text)
             self._perform_translation()
-
     def _show_temporary_status(self, text, color):
         self.status_label.setText(text)
         self.status_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 11px;")
         QTimer.singleShot(1500, self._restore_status)
-
     def _restore_status(self):
         if self.mode == 'standard':
             self.status_label.setText("标准")
             self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
-
     # ---------- 帮助覆盖层 ----------
     def _show_help(self):
         self.mode = 'help'
@@ -610,7 +556,6 @@ class MainWindow(QWidget):
         self.help_overlay.setFocus()
         self.status_label.setText("帮助")
         self.api_label.setText("")
-
     def _close_help(self):
         self.mode = 'standard'
         self.help_overlay.hide()
@@ -618,7 +563,6 @@ class MainWindow(QWidget):
         self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
         self.api_label.setText("")
         self.setFocus()
-
     # ---------- 窗口位置 ----------
     def _move_window_to_position(self, idx):
         screen = QApplication.primaryScreen().availableGeometry()
@@ -636,7 +580,6 @@ class MainWindow(QWidget):
         }
         if idx in positions:
             self.move(positions[idx][0], positions[idx][1])
-
     # ---------- 鼠标拖动 ----------
     def _toggle_draggable(self):
         self.draggable = not self.draggable
@@ -647,7 +590,6 @@ class MainWindow(QWidget):
             self.status_label.setText("标准")
             self.status_label.setStyleSheet("color: #0078D4; font-weight: bold; font-size: 11px;")
         self.api_label.setText("")
-
     def mousePressEvent(self, event):
         if self.draggable and event.button() == Qt.LeftButton:
             self.dragging = True
@@ -656,14 +598,12 @@ class MainWindow(QWidget):
             event.accept()
         else:
             super().mousePressEvent(event)
-
     def mouseMoveEvent(self, event: QMouseEvent):
         if self.dragging and self.draggable:
             self.move(event.globalPos() - self.drag_pos)
             event.accept()
         else:
             super().mouseMoveEvent(event)
-
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton and self.dragging:
             self.dragging = False
@@ -671,7 +611,6 @@ class MainWindow(QWidget):
             event.accept()
         else:
             super().mouseReleaseEvent(event)
-
     # ---------- 事件过滤器 ----------
     def eventFilter(self, obj, event):
         if hasattr(self, 'help_overlay') and obj == self.help_overlay and event.type() == QEvent.KeyPress:
@@ -690,13 +629,6 @@ class MainWindow(QWidget):
                 self._exit_editing_mode()
                 return True
         return super().eventFilter(obj, event)
-
-    def focusInEvent(self, event):
-        if self.mode == 'editing' and self.input_edit is not None:
-            self.input_edit.setFocus()
-        super().focusInEvent(event)
-
-
 # ==========================================================================
 #                            命令行模式
 # ==========================================================================
@@ -713,15 +645,9 @@ def run_cli():
             print(f"翻译失败: {e}", file=sys.stderr)
             sys.exit(1)
         sys.exit(0)
-
-
 window = None
-
-
 class SignalRelay(QObject):
     toggle_signal = pyqtSignal()
-
-
 def main(nerd_font="0xProto Nerd Font"):
     global window
     run_cli()
@@ -738,13 +664,11 @@ def main(nerd_font="0xProto Nerd Font"):
     window = MainWindow()
     app.main_window = window
     app.setQuitOnLastWindowClosed(False)
-
     def toggle():
         if window.isVisible():
             window.hide()
         else:
             window.force_activate()
-
     tray = QSystemTrayIcon()
     tray.setIcon(QIcon.fromTheme("accessories-text-editor",
                                  QApplication.style().standardIcon(QStyle.SP_ComputerIcon)))
@@ -758,33 +682,25 @@ def main(nerd_font="0xProto Nerd Font"):
     tray_menu.addSeparator()
     tray_menu.addAction(quit_action)
     tray.setContextMenu(tray_menu)
-
     def tray_activated(reason):
         if reason == QSystemTrayIcon.Trigger:
             toggle()
-
     tray.activated.connect(tray_activated)
     tray.show()
     relay = SignalRelay()
     relay.toggle_signal.connect(toggle)
-
     def hotkey_callback():
         relay.toggle_signal.emit()
-
     if KEYBOARD_AVAILABLE:
         keyboard.add_hotkey('ctrl+alt+p', hotkey_callback)
         app.aboutToQuit.connect(lambda: keyboard.unhook_all())
     else:
         print("热键库未安装，请使用托盘图标切换窗口。")
-
     def on_exit():
         if KEYBOARD_AVAILABLE:
             keyboard.unhook_all()
         tray.hide()
-
     app.aboutToQuit.connect(on_exit)
     sys.exit(app.exec_())
-
-
 if __name__ == '__main__':
     main()

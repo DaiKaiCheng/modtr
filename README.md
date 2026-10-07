@@ -110,14 +110,41 @@ set DEEPL_API_URL=https://api-free.deepl.com/v2/translate
 ### 图形界面模式
 直接运行程序：
 ```bash
-python translator.py
+python main.py
 ```
 
 ### 命令行模式
 支持命令行翻译：
 ```bash
-python translator.py "要翻译的文本"
+python main.py "要翻译的文本"
 ```
+
+## 编译方法
+
+### windows
+需要使用nuitka（也可以用别的，具体参考对应工具官方文档）
+
+安装nuitka
+```bash
+pip install nuitka
+pip install pip install "Nuitka[onefile]"
+```
+
+打包
+```bash
+#多文件
+python -m nuitka --standalone --enable-plugin=pyqt5 --include-package-data=pypinyin main.py
+#打包完成后可执行文件位于main.dist目录中
+```
+```bash
+#单文件
+python -m nuitka --onefile --enable-plugin=pyqt5 --include-package-data=pypinyin main.py
+```
+可以加上
+```bash
+--windows-disable-console
+```
+参数以不显示终端窗口
 
 ## 注意事项
 
@@ -126,6 +153,7 @@ python translator.py "要翻译的文本"
 - 中文拼音功能需要安装 pypinyin 库
 - 全局热键功能需要安装 keyboard 库
 - Windows 11 亚克力效果仅在 Windows 11 上生效
+- 自动获取焦点的功能需要先手动获取一次，后续再次呼出即可获取到焦点
 
 ## 许可证
 
